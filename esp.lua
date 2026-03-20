@@ -1,6 +1,14 @@
--- Zolt ESP Module
--- Called via loadstring, receives environment from main script
--- Requires: Tabs, Library, Options, Toggles, Teams (already set in main script)
+local Tabs         = _G.ZoltTabs
+local Library      = _G.ZoltLibrary
+local Options      = _G.ZoltOptions
+local Toggles      = _G.ZoltToggles
+local RunService   = _G.ZoltRunService    or game:GetService("RunService")
+local TweenService = _G.ZoltTweenService  or game:GetService("TweenService")
+local Debris       = _G.ZoltDebris        or game:GetService("Debris")
+local _teams       = _G.ZoltTeams         or {}
+local criminalsTeam = _teams.criminals
+local guardsTeam    = _teams.guards
+local inmatesTeam   = _teams.inmates
 
 -- Load Crumbleware framework (player tracking only)
 local framework = loadstring(request({
@@ -8,7 +16,6 @@ local framework = loadstring(request({
     Method = "Get"
 }).Body)()({debug = false})
 
--- ══ ESP ══
 
 local esp = {}
 esp.settings = {
