@@ -23,13 +23,12 @@ esp.settings = {
     maxdis    = 200,
     teamcheck = false,
     box       = { enabled = false, outline = false, mode = "corner", color = Color3.fromRGB(255,255,255) },
-    healthbar = { enabled = false, width = 3 },
+    healthbar = { enabled = false, width = 3, hptext = false, hptextcolor = Color3.fromRGB(255,255,255), hptextoutline = false },
     name      = { enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255) },
     distance  = { enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255) },
     weapon    = { enabled = false, size = 12, outline = false, color = Color3.fromRGB(255,0,0) },
 }
 
--- ── Weapon detection ──
 esp.weapons_list = {
     "M9","Taser","MP5","M4A1","AK-47","FAL","Remington 870","EBR","M700","Revolver",
     "Crude Knife","Hammer","Breakfast","C4","Explosive","Dinner","Handcuffs","Key card","Lunch","Riot Shield","Pickaxe",
@@ -114,6 +113,7 @@ local function _espInit(player)
     d.box_outline = _newQuad(false, Color3.fromRGB(0,0,0),       3)
     d.healthbar_b = _newQuad(true,  Color3.fromRGB(0,0,0))
     d.healthbar_f = _newQuad(true,  Color3.fromRGB(0,255,0))
+    d.healthbar_t = _newText(Color3.fromRGB(255,255,255), 11)
     -- corner_box: indices 1-8 = black outline lines, 9-16 = colored lines
     d.corner_box = {}
     for i = 1, 8  do d.corner_box[i] = _newLine(Color3.fromRGB(0,0,0),     3)   end
@@ -125,7 +125,7 @@ local function _espHide(player)
     local d = _espDrawings[player]; if not d then return end
     d.name.Visible=false; d.distance.Visible=false; d.weapon.Visible=false
     d.full_box.Visible=false; d.box_outline.Visible=false
-    d.healthbar_b.Visible=false; d.healthbar_f.Visible=false
+    d.healthbar_b.Visible=false; d.healthbar_f.Visible=false; d.healthbar_t.Visible=false
     for _, l in pairs(d.corner_box) do l.Visible = false end
 end
 
@@ -285,9 +285,25 @@ game:GetService("RunService").Heartbeat:Connect(function()
                 -- color lerp: red→green
                 hbf.Color  = Color3.new(math.clamp(1 - pct, 0, 1), math.clamp(pct, 0, 1), 0)
                 hbf.Visible = true
+
+                -- ── HP Text ──
+                if esp.settings.healthbar.hptext then
+                    local hbt = d.healthbar_t
+                    hbt.Text    = math.floor(hum.Health)
+                    hbt.Color   = esp.settings.healthbar.hptextcolor
+                    hbt.Outline = esp.settings.healthbar.hptextoutline
+                    hbt.Size    = 11
+                    hbt.Center  = false
+                    -- position: left of bar, above the top of the bar
+                    hbt.Position = Vector2.new(tl.X - xo - bw - 1, tl.Y - 1)
+                    hbt.Visible  = true
+                else
+                    d.healthbar_t.Visible = false
+                end
             else
                 d.healthbar_b.Visible = false
                 d.healthbar_f.Visible = false
+                d.healthbar_t.Visible = false
             end
 
             -- ── Box ──
@@ -416,6 +432,14 @@ local HpToggle=EspHealthGroup:AddToggle("HealthbarEnabled",{Text="Health bar",De
     Callback=function(v) esp.settings.healthbar.enabled=v end})
 EspHealthGroup:AddSlider("HealthbarWidth",{Text="Bar Width",Default=3,Min=1,Max=10,Rounding=1,
     Callback=function(v) esp.settings.healthbar.width=v end})
+EspHealthGroup:AddDivider()
+EspHealthGroup:AddToggle("HealthTextEnabled",{Text="HP Text",Default=false,
+    Callback=function(v) esp.settings.healthbar.hptext=v end})
+EspHealthGroup:AddLabel("HP Text Color"):AddColorPicker("HealthTextColor",{
+    Default=Color3.fromRGB(255,255,255),Title="HP Text Color",
+    Callback=function(v) esp.settings.healthbar.hptextcolor=v end})
+EspHealthGroup:AddToggle("HealthTextOutline",{Text="HP Text Outline",Default=false,
+    Callback=function(v) esp.settings.healthbar.hptextoutline=v end})
 
 -- ── Chams (Highlight) ──
 local _chamsEnabled   = false
