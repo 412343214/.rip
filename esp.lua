@@ -16,7 +16,7 @@ local framework = loadstring(request({
     Method = "Get"
 }).Body)()({debug = false})
 
-
+-- 11
 local esp = {}
 esp.settings = {
     enabled   = false,
@@ -29,6 +29,7 @@ esp.settings = {
     weapon    = { enabled = false, size = 12, outline = false, color = Color3.fromRGB(255,0,0) },
 }
 
+-- ── Weapon detection ──
 esp.weapons_list = {
     "M9","Taser","MP5","M4A1","AK-47","FAL","Remington 870","EBR","M700","Revolver",
     "Crude Knife","Hammer","Breakfast","C4","Explosive","Dinner","Handcuffs","Key card","Lunch","Riot Shield","Pickaxe",
@@ -289,13 +290,13 @@ game:GetService("RunService").Heartbeat:Connect(function()
                 -- ── HP Text ──
                 if esp.settings.healthbar.hptext then
                     local hbt = d.healthbar_t
-                    hbt.Text    = math.floor(hum.Health)
+                    hbt.Text    = tostring(math.floor(hum.Health))
                     hbt.Color   = esp.settings.healthbar.hptextcolor
                     hbt.Outline = esp.settings.healthbar.hptextoutline
                     hbt.Size    = 11
                     hbt.Center  = false
-                    -- position: left of bar, above the top of the bar
-                    hbt.Position = Vector2.new(tl.X - xo - bw - 1, tl.Y - 1)
+                    -- position: left of bar, above the top
+                    hbt.Position = Vector2.new(tl.X - xo - bw - 1, tl.Y - hbt.TextBounds.Y - 2)
                     hbt.Visible  = true
                 else
                     d.healthbar_t.Visible = false
@@ -433,12 +434,12 @@ local HpToggle=EspHealthGroup:AddToggle("HealthbarEnabled",{Text="Health bar",De
 EspHealthGroup:AddSlider("HealthbarWidth",{Text="Bar Width",Default=3,Min=1,Max=10,Rounding=1,
     Callback=function(v) esp.settings.healthbar.width=v end})
 EspHealthGroup:AddDivider()
-EspHealthGroup:AddToggle("HealthTextEnabled",{Text="HP Text",Default=false,
-    Callback=function(v) esp.settings.healthbar.hptext=v end})
 EspHealthGroup:AddLabel("HP Text Color"):AddColorPicker("HealthTextColor",{
     Default=Color3.fromRGB(255,255,255),Title="HP Text Color",
     Callback=function(v) esp.settings.healthbar.hptextcolor=v end})
-EspHealthGroup:AddToggle("HealthTextOutline",{Text="HP Text Outline",Default=false,
+EspHealthGroup:AddToggle("HealthTextEnabled",{Text="HP Text",Default=false,
+    Callback=function(v) esp.settings.healthbar.hptext=v end})
+EspHealthGroup:AddToggle("HealthTextOutline",{Text="Outline",Default=false,
     Callback=function(v) esp.settings.healthbar.hptextoutline=v end})
 
 -- ── Chams (Highlight) ──
