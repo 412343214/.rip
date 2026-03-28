@@ -1,3 +1,8 @@
+-- Zolt ESP Module
+-- Called via loadstring from Zolt.lua
+-- All shared variables are passed via _G.Zolt* globals
+
+-- Pull shared vars from main script globals
 local Tabs         = _G.ZoltTabs
 local Library      = _G.ZoltLibrary
 local Options      = _G.ZoltOptions
@@ -16,10 +21,12 @@ local framework = loadstring(request({
     Method = "Get"
 }).Body)()({debug = false})
 
+-- ══ ESP ══
+
 local esp = {}
 esp.settings = {
     enabled   = false,
-    maxdis    = 200,
+    maxdis    = 1000,
     teamcheck = false,
     box       = { enabled = false, outline = false, mode = "corner", color = Color3.fromRGB(255,255,255) },
     healthbar = { enabled = false, width = 3 },
@@ -297,11 +304,14 @@ game:GetService("RunService").Heartbeat:Connect(function()
 
                     local fb = d.full_box
                     fb.PointA = tl; fb.PointB = tr; fb.PointC = br; fb.PointD = bl
-                    fb.Color  = esp.settings.box.color; fb.Visible = true
+                    fb.Color  = esp.settings.box.color
+                    fb.Thickness = 1.5
+                    fb.Visible = true
 
                     if esp.settings.box.outline then
                         local ob = d.box_outline
                         ob.PointA = tl; ob.PointB = tr; ob.PointC = br; ob.PointD = bl
+                        ob.Color = Color3.fromRGB(0,0,0)
                         ob.Thickness = 3; ob.Visible = true
                     else d.box_outline.Visible = false end
 
@@ -375,11 +385,17 @@ local EspWeaponGroup = Tabs.Visuals:AddRightGroupbox("Weapon",    "sword")
 local EspHealthGroup = Tabs.Visuals:AddRightGroupbox("Health Bar","heart")
 
 EspMainGroup:AddToggle("EnableESP",{Text="Enable ESP",Default=false,
-    Callback=function(v) esp.settings.enabled=v end})
+    Callback=function(v)
+        esp.settings.enabled=v
+        if not v then
+            _chamsEnabled = false
+            _chamsCleanAll()
+        end
+    end})
 EspMainGroup:AddToggle("ESPTeamCheck",{Text="Team Check",Default=false,
     Callback=function(v) esp.settings.teamcheck=v end})
 EspMainGroup:AddDivider()
-EspMainGroup:AddSlider("MaxDistance",{Text="Max Distance",Default=200,Min=0,Max=1000,Rounding=0,Suffix=" m",
+EspMainGroup:AddSlider("MaxDistance",{Text="Max Distance",Default=1000,Min=0,Max=1000,Rounding=0,Suffix=" m",
     Callback=function(v) esp.settings.maxdis=v end})
 
 local NameToggle=EspNameGroup:AddToggle("NameEnabled",{Text="Name",Default=false,
