@@ -1,8 +1,3 @@
--- Zolt ESP Module
--- Called via loadstring from Zolt.lua
--- All shared variables are passed via _G.Zolt* globals
-
--- Pull shared vars from main script globals
 local Tabs         = _G.ZoltTabs
 local Library      = _G.ZoltLibrary
 local Options      = _G.ZoltOptions
@@ -21,7 +16,6 @@ local framework = loadstring(request({
     Method = "Get"
 }).Body)()({debug = false})
 
--- ══ ESP ══
 
 local esp = {}
 esp.settings = {
@@ -35,7 +29,6 @@ esp.settings = {
     weapon    = { enabled = false, size = 12, outline = false, color = Color3.fromRGB(255,0,0) },
 }
 
--- ── Weapon detection ──
 esp.weapons_list = {
     "M9","Taser","MP5","M4A1","AK-47","FAL","Remington 870","EBR","M700","Revolver",
     "Crude Knife","Hammer","Breakfast","C4","Explosive","Dinner","Handcuffs","Key card","Lunch","Riot Shield","Pickaxe",
@@ -523,6 +516,14 @@ game:GetService("RunService").Heartbeat:Connect(function()
             if plr == lp then continue end
             local char = plr.Character
             if not char then continue end
+
+            -- Hide chams on death
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health <= 0 then
+                local h = char:FindFirstChild("ChamsHighlight")
+                if h then h:Destroy() end
+                continue
+            end
 
             -- Distance check — same logic as ESP (0 = nobody)
             local withinRange = false
