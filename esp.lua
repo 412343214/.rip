@@ -21,7 +21,7 @@ esp.settings = {
     enabled   = false,
     maxdis    = 1000,
     teamcheck = false,
-    box       = { enabled = false, outline = false,  mode = "corner", color = Color3.fromRGB(255,255,255) },
+    box       = { enabled = false, outline = true,  mode = "corner", color = Color3.fromRGB(255,255,255) },
     healthbar = { enabled = false, width = 3 },
     name      = { enabled = false, size = 13, outline = true, color = Color3.fromRGB(255,255,255) },
     distance  = { enabled = false, size = 13, outline = true, color = Color3.fromRGB(255,255,255) },
