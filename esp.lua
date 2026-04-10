@@ -16,13 +16,12 @@ local framework = loadstring(request({
     Method = "Get"
 }).Body)()({debug = false})
 
-
 local esp = {}
 esp.settings = {
     enabled   = false,
     maxdis    = 1000,
     teamcheck = false,
-    box       = { enabled = false, outline = false, mode = "corner", color = Color3.fromRGB(255,255,255) },
+    box       = { enabled = false, outline = true,  mode = "corner", color = Color3.fromRGB(255,255,255) },
     healthbar = { enabled = false, width = 3 },
     name      = { enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255) },
     distance  = { enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255) },
@@ -395,21 +394,17 @@ local NameToggle=EspNameGroup:AddToggle("NameEnabled",{Text="Name",Default=false
     Callback=function(v) esp.settings.name.enabled=v end})
 NameToggle:AddColorPicker("NameColor",{Default=Color3.fromRGB(255,255,255),Title="Name Color",
     Callback=function(v) esp.settings.name.color=v end})
-EspNameGroup:AddToggle("NameOutline",{Text="Outline",Default=false,
-    Callback=function(v) esp.settings.name.outline=v end})
 
 local DistToggle=EspDistGroup:AddToggle("DistanceEnabled",{Text="Distance",Default=false,
     Callback=function(v) esp.settings.distance.enabled=v end})
 DistToggle:AddColorPicker("DistanceColor",{Default=Color3.fromRGB(255,255,255),Title="Distance Color",
     Callback=function(v) esp.settings.distance.color=v end})
-EspDistGroup:AddToggle("DistOutline",{Text="Outline",Default=false,
-    Callback=function(v) esp.settings.distance.outline=v end})
 
 local BoxToggle=EspBoxGroup:AddToggle("BoxEnabled",{Text="Box",Default=false,
     Callback=function(v) esp.settings.box.enabled=v end})
 BoxToggle:AddColorPicker("BoxColor",{Default=Color3.fromRGB(255,255,255),Title="Box Color",
     Callback=function(v) esp.settings.box.color=v end})
-EspBoxGroup:AddToggle("BoxOutline",{Text="Outline",Default=false,
+EspBoxGroup:AddToggle("BoxOutline",{Text="Outline",Default=true,
     Callback=function(v) esp.settings.box.outline=v end})
 EspBoxGroup:AddDropdown("BoxMode",{Values={"corner","full"},Default="corner",Text="Box Mode",
     Callback=function(v) esp.settings.box.mode=v end})
@@ -418,8 +413,6 @@ local WeaponToggle=EspWeaponGroup:AddToggle("WeaponEnabled",{Text="Weapon",Defau
     Callback=function(v) esp.settings.weapon.enabled=v end})
 WeaponToggle:AddColorPicker("WeaponColor",{Default=Color3.fromRGB(255,0,0),Title="Weapon Color",
     Callback=function(v) esp.settings.weapon.color=v end})
-EspWeaponGroup:AddToggle("WeaponOutline",{Text="Outline",Default=false,
-    Callback=function(v) esp.settings.weapon.outline=v end})
 
 local HpToggle=EspHealthGroup:AddToggle("HealthbarEnabled",{Text="Health bar",Default=false,
     Callback=function(v) esp.settings.healthbar.enabled=v end})
