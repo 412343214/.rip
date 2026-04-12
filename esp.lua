@@ -293,12 +293,8 @@ for _, p in pairs(game:GetService("Players"):GetPlayers()) do
     if p ~= esp.localPlayer then _espInit(p) end
 end
 
-local EspMainGroup   = Tabs.Visuals:AddLeftGroupbox("ESP",        "eye")
-local EspNameGroup   = Tabs.Visuals:AddLeftGroupbox("Name",       "tag")
-local EspDistGroup   = Tabs.Visuals:AddLeftGroupbox("Distance",   "ruler")
-local EspBoxGroup    = Tabs.Visuals:AddRightGroupbox("Box",       "square")
-local EspWeaponGroup = Tabs.Visuals:AddRightGroupbox("Weapon",    "sword")
-local EspHealthGroup = Tabs.Visuals:AddRightGroupbox("Health Bar","heart")
+local EspMainGroup   = Tabs.Visuals:AddLeftGroupbox("ESP", "eye", {Collapsible=true})
+local EspBoxGroup    = Tabs.Visuals:AddRightGroupbox("Box", "square", {Collapsible=true})
 
 EspMainGroup:AddToggle("EnableESP",{Text="Enable ESP",Default=false,
     Callback=function(v)
@@ -310,16 +306,27 @@ EspMainGroup:AddToggle("ESPTeamCheck",{Text="Team Check",Default=false,
 EspMainGroup:AddDivider()
 EspMainGroup:AddSlider("MaxDistance",{Text="Max Distance",Default=1000,Min=0,Max=1000,Rounding=0,Suffix=" m",
     Callback=function(v) esp.settings.maxdis=v end})
+EspMainGroup:AddSlider("HealthbarWidth",{Text="Bar Width",Default=3,Min=1,Max=10,Rounding=1,
+    Callback=function(v) esp.settings.healthbar.width=v end})
+EspMainGroup:AddDivider()
 
-local NameToggle=EspNameGroup:AddToggle("NameEnabled",{Text="Name",Default=false,
+local NameToggle=EspMainGroup:AddToggle("NameEnabled",{Text="Name",Default=false,
     Callback=function(v) esp.settings.name.enabled=v end})
 NameToggle:AddColorPicker("NameColor",{Default=Color3.fromRGB(255,255,255),Title="Name Color",
     Callback=function(v) esp.settings.name.color=v end})
 
-local DistToggle=EspDistGroup:AddToggle("DistanceEnabled",{Text="Distance",Default=false,
+local DistToggle=EspMainGroup:AddToggle("DistanceEnabled",{Text="Distance",Default=false,
     Callback=function(v) esp.settings.distance.enabled=v end})
 DistToggle:AddColorPicker("DistanceColor",{Default=Color3.fromRGB(255,255,255),Title="Distance Color",
     Callback=function(v) esp.settings.distance.color=v end})
+
+local WeaponToggle=EspMainGroup:AddToggle("WeaponEnabled",{Text="Weapon",Default=false,
+    Callback=function(v) esp.settings.weapon.enabled=v end})
+WeaponToggle:AddColorPicker("WeaponColor",{Default=Color3.fromRGB(255,0,0),Title="Weapon Color",
+    Callback=function(v) esp.settings.weapon.color=v end})
+
+local HpToggle=EspMainGroup:AddToggle("HealthbarEnabled",{Text="Health bar",Default=false,
+    Callback=function(v) esp.settings.healthbar.enabled=v end})
 
 local BoxToggle=EspBoxGroup:AddToggle("BoxEnabled",{Text="Box",Default=false,
     Callback=function(v) esp.settings.box.enabled=v end})
@@ -329,16 +336,6 @@ EspBoxGroup:AddToggle("BoxOutline",{Text="Outline",Default=false,
     Callback=function(v) esp.settings.box.outline=v end})
 EspBoxGroup:AddDropdown("BoxMode",{Values={"corner","full"},Default="corner",Text="Box Mode",
     Callback=function(v) esp.settings.box.mode=v end})
-
-local WeaponToggle=EspWeaponGroup:AddToggle("WeaponEnabled",{Text="Weapon",Default=false,
-    Callback=function(v) esp.settings.weapon.enabled=v end})
-WeaponToggle:AddColorPicker("WeaponColor",{Default=Color3.fromRGB(255,0,0),Title="Weapon Color",
-    Callback=function(v) esp.settings.weapon.color=v end})
-
-local HpToggle=EspHealthGroup:AddToggle("HealthbarEnabled",{Text="Health bar",Default=false,
-    Callback=function(v) esp.settings.healthbar.enabled=v end})
-EspHealthGroup:AddSlider("HealthbarWidth",{Text="Bar Width",Default=3,Min=1,Max=10,Rounding=1,
-    Callback=function(v) esp.settings.healthbar.width=v end})
 
 local _chamsEnabled   = false
 local _teamChamsOn    = false
@@ -442,7 +439,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end)
 end)
 
-local ChamsGroup = Tabs.Visuals:AddLeftGroupbox("Chams", "layers")
+local ChamsGroup = Tabs.Visuals:AddLeftGroupbox("Chams", "layers", {Collapsible=true})
 ChamsGroup:AddToggle("ChamsEnabled",{Text="Enable Chams",Default=false,
     Callback=function(v) _chamsEnabled=v; if not v then _chamsCleanAll() end end})
 ChamsGroup:AddLabel("Fill Color"):AddColorPicker("ChamsFillColor",{Default=Color3.fromRGB(255,0,0),Title="Fill Color",
