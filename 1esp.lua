@@ -5,10 +5,6 @@ local Toggles      = _G.ZoltToggles
 local RunService   = _G.ZoltRunService    or game:GetService("RunService")
 local TweenService = _G.ZoltTweenService  or game:GetService("TweenService")
 local Debris       = _G.ZoltDebris        or game:GetService("Debris")
-local _teams       = _G.ZoltTeams         or {}
-local criminalsTeam = _teams.criminals
-local guardsTeam    = _teams.guards
-local inmatesTeam   = _teams.inmates
 
 local framework = loadstring(request({
     Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua",
@@ -27,38 +23,15 @@ esp.settings = {
     weapon    = { enabled = false, size = 12, outline = true, color = Color3.fromRGB(255,0,0) },
 }
 
-esp.weapons_list = {
-    "M9","Taser","MP5","M4A1","AK-47","FAL","Remington 870","EBR","M700","Revolver",
-    "Crude Knife","Hammer","Breakfast","C4","Explosive","Dinner","Handcuffs","Key card","Lunch","Riot Shield","Pickaxe",
-}
 esp.localPlayer = game:GetService("Players").LocalPlayer
 
-local _espWeaponCache = {}
-local function _espUpdateWeapon(player)
-    if not player or not player.Parent then _espWeaponCache[player] = "[none]"; return end
-    local char = workspace:FindFirstChild(player.Name)
-    if not char then _espWeaponCache[player] = "[none]"; return end
-    for _, wn in ipairs(esp.weapons_list) do
-        if char:FindFirstChild(wn) then _espWeaponCache[player] = "[" .. wn .. "]"; return end
-        for _, item in ipairs(char:GetChildren()) do
-            if string.find(item.Name:lower(), wn:lower()) then _espWeaponCache[player] = "[" .. wn .. "]"; return end
-        end
-    end
-    _espWeaponCache[player] = "[none]"
-end
-local _espWeaponConns = {}
-local function _espHookWeaponCache(player)
-    if _espWeaponConns[player] then return end
-    local char = workspace:FindFirstChild(player.Name); if not char then return end
-    _espUpdateWeapon(player)
-    _espWeaponConns[player] = {
-        char.ChildAdded:Connect(function() _espUpdateWeapon(player) end),
-        char.ChildRemoved:Connect(function() _espUpdateWeapon(player) end),
-    }
-end
+-- NEW: Weapon detection using FindFirstChildWhichIsA("Tool")
 function esp:getPlayerWeapon(player)
-    if not _espWeaponCache[player] then _espUpdateWeapon(player) end
-    return _espWeaponCache[player] or "[none]"
+    if player and player.Character then
+        local tool = player.Character:FindFirstChildWhichIsA("Tool")
+        return tool and "[" .. tool.Name .. "]" or "[none]"
+    end
+    return "[none]"
 end
 
 local function _newText(color, size)
@@ -150,8 +123,6 @@ game:GetService("RunService").Heartbeat:Connect(function()
             local dist = (root.Position - localRoot.Position).Magnitude / 3
             if esp.settings.maxdis == 0 then _espHide(player); continue end
             if dist > esp.settings.maxdis then _espHide(player); continue end
-
-            if not _espWeaponConns[player] then _espHookWeaponCache(player) end
 
             local minX, minY =  math.huge,  math.huge
             local maxX, maxY = -math.huge, -math.huge
@@ -279,14 +250,10 @@ game:GetService("RunService").Heartbeat:Connect(function()
 end)
 
 table.insert(framework.connec_funcs["playeradded"], function(player)
-    task.wait(0.5); _espInit(player); _espHookWeaponCache(player)
+    task.wait(0.5); _espInit(player)
 end)
 table.insert(framework.connec_funcs["playerremoving"], function(player)
-    _espClean(player); _espWeaponCache[player] = nil
-    if _espWeaponConns[player] then
-        for _, c in pairs(_espWeaponConns[player]) do pcall(function() c:Disconnect() end) end
-        _espWeaponConns[player] = nil
-    end
+    _espClean(player)
 end)
 
 for _, p in pairs(game:GetService("Players"):GetPlayers()) do
@@ -301,8 +268,6 @@ EspMainGroup:AddToggle("EnableESP",{Text="Enable ESP",Default=false,
         esp.settings.enabled=v
         if not v then _chamsEnabled=false; _chamsCleanAll() end
     end})
-EspMainGroup:AddToggle("ESPTeamCheck",{Text="Team Check",Default=false,
-    Callback=function(v) esp.settings.teamcheck=v end})
 EspMainGroup:AddDivider()
 EspMainGroup:AddSlider("MaxDistance",{Text="Max Distance",Default=1000,Min=0,Max=1000,Rounding=0,Suffix=" m",
     Callback=function(v) esp.settings.maxdis=v end})
@@ -338,26 +303,8 @@ EspBoxGroup:AddDropdown("BoxMode",{Values={"corner","full"},Default="corner",Tex
     Callback=function(v) esp.settings.box.mode=v end})
 
 local _chamsEnabled   = false
-local _teamChamsOn    = false
 local _chamsFill      = Color3.fromRGB(255, 0, 0)
 local _chamsOutline   = Color3.fromRGB(255, 255, 255)
-local _chamsCriminals = Color3.fromRGB(255, 60, 60)
-local _chamsGuards    = Color3.fromRGB(60, 120, 255)
-local _chamsInmates   = Color3.fromRGB(255, 165, 0)
-
-local function _chamsGetColor(player)
-    if not _teamChamsOn then return _chamsFill end
-    local tm = player.Team
-    if tm == criminalsTeam then return _chamsCriminals end
-    if tm == guardsTeam    then return _chamsGuards end
-    if tm == inmatesTeam   then return _chamsInmates end
-    return _chamsFill
-end
-
-local function _chamsSkip(player)
-    if esp.settings.teamcheck and player.Team == game.Players.LocalPlayer.Team then return true end
-    return false
-end
 
 local function _chamsAddHighlight(char, fillColor)
     if char:FindFirstChild("ChamsHighlight") then return end
@@ -382,14 +329,14 @@ local _chamsCharConns = {}
 local function _chamsHookPlayer(plr)
     if _chamsCharConns[plr] then return end
     if plr.Character then
-        if _chamsEnabled and not _chamsSkip(plr) then
-            _chamsAddHighlight(plr.Character, _chamsGetColor(plr))
+        if _chamsEnabled then
+            _chamsAddHighlight(plr.Character, _chamsFill)
         end
     end
     _chamsCharConns[plr] = plr.CharacterAdded:Connect(function(char)
         pcall(function()
-            if not _chamsEnabled or _chamsSkip(plr) then return end
-            _chamsAddHighlight(char, _chamsGetColor(plr))
+            if not _chamsEnabled then return end
+            _chamsAddHighlight(char, _chamsFill)
         end)
     end)
 end
@@ -424,14 +371,13 @@ game:GetService("RunService").Heartbeat:Connect(function()
                     if esp.settings.maxdis > 0 and dist <= esp.settings.maxdis then withinRange = true end
                 end
             end
-            if not _chamsEnabled or _chamsSkip(plr) or not withinRange then
+            if not _chamsEnabled or not withinRange then
                 local h = char:FindFirstChild("ChamsHighlight"); if h then h:Destroy() end
             else
                 local h = char:FindFirstChild("ChamsHighlight")
-                local col = _chamsGetColor(plr)
-                if not h then _chamsAddHighlight(char, col)
+                if not h then _chamsAddHighlight(char, _chamsFill)
                 else
-                    if h.FillColor ~= col then h.FillColor = col end
+                    if h.FillColor ~= _chamsFill then h.FillColor = _chamsFill end
                     if h.OutlineColor ~= _chamsOutline then h.OutlineColor = _chamsOutline end
                 end
             end
@@ -447,4 +393,3 @@ ChamsGroup:AddLabel("Fill Color"):AddColorPicker("ChamsFillColor",{Default=Color
 ChamsGroup:AddLabel("Outline Color"):AddColorPicker("ChamsOutlineColor",{Default=Color3.fromRGB(255,255,255),Title="Outline Color",
     Callback=function(v) _chamsOutline=v end})
 ChamsGroup:AddDivider()
--- Team chams removed
