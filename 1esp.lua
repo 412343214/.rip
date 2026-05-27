@@ -7,7 +7,7 @@ local TweenService = _G.ZoltTweenService  or game:GetService("TweenService")
 local Debris       = _G.ZoltDebris        or game:GetService("Debris")
 
 local framework = loadstring(request({
-    Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua",
+    Url = "https://raw.githubusercontent.com/412343214/.rip/refs/heads/main/framework.lua",
     Method = "Get"
 }).Body)()({debug = false})
 
