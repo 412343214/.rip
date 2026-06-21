@@ -337,15 +337,15 @@ EspBoxGroup:AddToggle("BoxOutline",{Text="Outline",Default=false,
 EspBoxGroup:AddDropdown("BoxMode",{Values={"corner","full"},Default="corner",Text="Box Mode",
     Callback=function(v) esp.settings.box.mode=v end})
 
+
 local _chamsEnabled   = false
 local _teamChamsOn    = false
 local _chamsFill      = Color3.fromRGB(255, 0, 0)
 local _chamsOutline   = Color3.fromRGB(255, 255, 255)
+local _chamsOccludedColor = Color3.fromRGB(255, 40, 40)
 local _chamsCriminals = Color3.fromRGB(255, 60, 60)
 local _chamsGuards    = Color3.fromRGB(60, 120, 255)
 local _chamsInmates   = Color3.fromRGB(255, 165, 0)
-
-local _chamsObjects = {}
 
 local function _chamsGetColor(player)
     if not _teamChamsOn then return _chamsFill end
@@ -361,38 +361,64 @@ local function _chamsSkip(player)
     return false
 end
 
-local function _chamsAddHighlight(player, char, fillColor)
-    _chamsRemoveHighlight(player)
+local function _chamsAddHighlight(char, visibleColor)
+    if char:FindFirstChild("ChamsCloneModel") then return end
 
-    local h = Instance.new("Highlight")
-    h.Name = "ChamsHighlight"
-    h.FillColor = fillColor
-    h.OutlineColor = _chamsOutline
-    h.FillTransparency = 0.5
-    h.OutlineTransparency = 0
-    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    h.Adornee = char
-    h.Parent = char
+    local cloneModel = Instance.new("Model")
+    cloneModel.Name = "ChamsCloneModel"
 
-    _chamsObjects[player] = h
+    for _, child in pairs(char:GetChildren()) do
+        if not child:IsA("BasePart") then continue end
+        local cloned = child:Clone()
+        cloned:ClearAllChildren()
+        cloned.CanCollide = false
+        cloned.Anchored = false
+        cloned.CastShadow = false
+        cloned.Transparency = 1
+        if cloned:IsA("MeshPart") then cloned.TextureID = "" end
+        cloned.Size = cloned.Size * 0.99
+        cloned.Parent = cloneModel
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = cloned
+        weld.Part1 = child
+        weld.Parent = cloned
+    end
+    cloneModel.Parent = char
+
+    local hOcc = Instance.new("Highlight")
+    hOcc.Name = "ChamsHighlight_Occluded"
+    hOcc.FillColor = _chamsOccludedColor
+    hOcc.OutlineColor = _chamsOutline
+    hOcc.FillTransparency = 0.5
+    hOcc.OutlineTransparency = 0
+    hOcc.DepthMode = Enum.HighlightDepthMode.Occluded
+    hOcc.Adornee = char
+    hOcc.Parent = char
+
+    local hVis = Instance.new("Highlight")
+    hVis.Name = "ChamsHighlight_Visible"
+    hVis.FillColor = visibleColor
+    hVis.OutlineColor = _chamsOutline
+    hVis.FillTransparency = 0.5
+    hVis.OutlineTransparency = 0
+    hVis.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hVis.Adornee = cloneModel
+    hVis.Parent = cloneModel
 end
 
-local function _chamsRemoveHighlight(player)
-    local h = _chamsObjects[player]
-    if h then
-        h:Destroy()
-        _chamsObjects[player] = nil
-    end
-    local char = player.Character
-    if char then
-        local old = char:FindFirstChild("ChamsHighlight")
-        if old then old:Destroy() end
-    end
+local function _chamsRemoveHighlight(char)
+    if not char then return end
+    local cloneModel = char:FindFirstChild("ChamsCloneModel")
+    if cloneModel then cloneModel:Destroy() end
+    
+    local hOcc = char:FindFirstChild("ChamsHighlight_Occluded")
+    if hOcc then hOcc:Destroy() end
 end
 
 local function _chamsCleanAll()
     for _, plr in pairs(game.Players:GetPlayers()) do
-        _chamsRemoveHighlight(plr)
+        if plr.Character then _chamsRemoveHighlight(plr.Character) end
     end
 end
 
@@ -401,13 +427,13 @@ local function _chamsHookPlayer(plr)
     if _chamsCharConns[plr] then return end
     if plr.Character then
         if _chamsEnabled and not _chamsSkip(plr) then
-            _chamsAddHighlight(plr, plr.Character, _chamsGetColor(plr))
+            _chamsAddHighlight(plr.Character, _chamsGetColor(plr))
         end
     end
     _chamsCharConns[plr] = plr.CharacterAdded:Connect(function(char)
         pcall(function()
             if not _chamsEnabled or _chamsSkip(plr) then return end
-            _chamsAddHighlight(plr, char, _chamsGetColor(plr))
+            _chamsAddHighlight(char, _chamsGetColor(plr))
         end)
     end)
 end
@@ -420,7 +446,6 @@ game.Players.PlayerAdded:Connect(function(plr)
 end)
 game.Players.PlayerRemoving:Connect(function(plr)
     if _chamsCharConns[plr] then _chamsCharConns[plr]:Disconnect(); _chamsCharConns[plr] = nil end
-    _chamsRemoveHighlight(plr)
 end)
 
 game:GetService("RunService").Heartbeat:Connect(function()
@@ -433,7 +458,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
             local char = plr.Character; if not char then continue end
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum and hum.Health <= 0 then
-                _chamsRemoveHighlight(plr); continue
+                _chamsRemoveHighlight(char); continue
             end
             local withinRange = false
             if _chamsEnabled and localRoot then
@@ -444,15 +469,20 @@ game:GetService("RunService").Heartbeat:Connect(function()
                 end
             end
             if not _chamsEnabled or _chamsSkip(plr) or not withinRange then
-                _chamsRemoveHighlight(plr)
+                _chamsRemoveHighlight(char)
             else
-                local h = _chamsObjects[plr]
+                local cloneModel = char:FindFirstChild("ChamsCloneModel")
+                local hVis = cloneModel and cloneModel:FindFirstChild("ChamsHighlight_Visible")
+                local hOcc = char:FindFirstChild("ChamsHighlight_Occluded")
                 local col = _chamsGetColor(plr)
-                if not h or not h.Parent then 
-                    _chamsAddHighlight(plr, char, col)
+                
+                if not cloneModel or not hVis or not hOcc then
+                    _chamsAddHighlight(char, col)
                 else
-                    if h.FillColor ~= col then h.FillColor = col end
-                    if h.OutlineColor ~= _chamsOutline then h.OutlineColor = _chamsOutline end
+                    if hVis.FillColor ~= col then hVis.FillColor = col end
+                    if hVis.OutlineColor ~= _chamsOutline then hVis.OutlineColor = _chamsOutline end
+                    if hOcc.FillColor ~= _chamsOccludedColor then hOcc.FillColor = _chamsOccludedColor end
+                    if hOcc.OutlineColor ~= _chamsOutline then hOcc.OutlineColor = _chamsOutline end
                 end
             end
         end
@@ -462,8 +492,10 @@ end)
 local ChamsGroup = Tabs.Visuals:AddLeftGroupbox("Chams", "layers", {Collapsible=true})
 ChamsGroup:AddToggle("ChamsEnabled",{Text="Enable Chams",Default=false,
     Callback=function(v) _chamsEnabled=v; if not v then _chamsCleanAll() end end})
-ChamsGroup:AddLabel("Fill Color"):AddColorPicker("ChamsFillColor",{Default=Color3.fromRGB(255,0,0),Title="Fill Color",
+ChamsGroup:AddLabel("Visible Color"):AddColorPicker("ChamsFillColor",{Default=Color3.fromRGB(255,0,0),Title="Visible Color",
     Callback=function(v) _chamsFill=v end})
+ChamsGroup:AddLabel("Behind Wall Color"):AddColorPicker("ChamsOccludedColor",{Default=Color3.fromRGB(255,40,40),Title="Behind Wall Color",
+    Callback=function(v) _chamsOccludedColor=v end})
 ChamsGroup:AddLabel("Outline Color"):AddColorPicker("ChamsOutlineColor",{Default=Color3.fromRGB(255,255,255),Title="Outline Color",
     Callback=function(v) _chamsOutline=v end})
 ChamsGroup:AddDivider()
