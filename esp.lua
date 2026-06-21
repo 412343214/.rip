@@ -345,6 +345,8 @@ local _chamsCriminals = Color3.fromRGB(255, 60, 60)
 local _chamsGuards    = Color3.fromRGB(60, 120, 255)
 local _chamsInmates   = Color3.fromRGB(255, 165, 0)
 
+local _chamsObjects = {}
+
 local function _chamsGetColor(player)
     if not _teamChamsOn then return _chamsFill end
     local tm = player.Team
@@ -359,22 +361,71 @@ local function _chamsSkip(player)
     return false
 end
 
-local function _chamsAddHighlight(char, fillColor)
-    if char:FindFirstChild("ChamsHighlight") then return end
-    local h = Instance.new("Highlight")
-    h.Name = "ChamsHighlight"; h.FillColor = fillColor; h.OutlineColor = _chamsOutline
-    h.FillTransparency = 0.5; h.OutlineTransparency = 0
-    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop; h.Parent = char
+local function _chamsAddHighlight(player, char, fillColor)
+    _chamsRemoveHighlight(player)
+
+    local model = Instance.new("Model")
+    model.Name = "ChamsChr"
+
+    for _, child in pairs(char:GetChildren()) do
+        if not child:IsA("BasePart") then continue end
+        local cloned = child:Clone()
+        cloned:ClearAllChildren()
+        cloned.CanCollide = false
+        cloned.Anchored = false
+        cloned.CastShadow = false
+        cloned.Transparency = 1
+        if cloned:IsA("MeshPart") then cloned.TextureID = "" end
+        cloned.Size = cloned.Size * 0.99
+        cloned.Parent = model
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = cloned
+        weld.Part1 = child
+        weld.Parent = cloned
+    end
+
+    model.Parent = Workspace
+
+    local los = Instance.new("Highlight")
+    los.Name = "ChamsLos"
+    los.DepthMode = Enum.HighlightDepthMode.Occluded
+    los.FillColor = fillColor
+    los.OutlineColor = _chamsOutline
+    los.FillTransparency = 0.5
+    los.OutlineTransparency = 0
+    los.Adornee = char
+    los.Parent = char
+
+    local occ = Instance.new("Highlight")
+    occ.Name = "ChamsOcc"
+    occ.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    occ.FillColor = fillColor
+    occ.OutlineColor = _chamsOutline
+    occ.FillTransparency = 0.5
+    occ.OutlineTransparency = 0
+    occ.Adornee = model
+    occ.Parent = model
+
+    _chamsObjects[player] = { Model = model, Occ = occ }
 end
 
-local function _chamsRemoveHighlight(char)
-    if not char then return end
-    local h = char:FindFirstChild("ChamsHighlight"); if h then h:Destroy() end
+local function _chamsRemoveHighlight(player)
+    local data = _chamsObjects[player]
+    if data then
+        if data.Occ then data.Occ:Destroy() end
+        if data.Model then data.Model:Destroy() end
+        _chamsObjects[player] = nil
+    end
+    local char = player.Character
+    if char then
+        local los = char:FindFirstChild("ChamsLos")
+        if los then los:Destroy() end
+    end
 end
 
 local function _chamsCleanAll()
     for _, plr in pairs(game.Players:GetPlayers()) do
-        if plr.Character then _chamsRemoveHighlight(plr.Character) end
+        _chamsRemoveHighlight(plr)
     end
 end
 
@@ -383,13 +434,13 @@ local function _chamsHookPlayer(plr)
     if _chamsCharConns[plr] then return end
     if plr.Character then
         if _chamsEnabled and not _chamsSkip(plr) then
-            _chamsAddHighlight(plr.Character, _chamsGetColor(plr))
+            _chamsAddHighlight(plr, plr.Character, _chamsGetColor(plr))
         end
     end
     _chamsCharConns[plr] = plr.CharacterAdded:Connect(function(char)
         pcall(function()
             if not _chamsEnabled or _chamsSkip(plr) then return end
-            _chamsAddHighlight(char, _chamsGetColor(plr))
+            _chamsAddHighlight(plr, char, _chamsGetColor(plr))
         end)
     end)
 end
@@ -402,6 +453,7 @@ game.Players.PlayerAdded:Connect(function(plr)
 end)
 game.Players.PlayerRemoving:Connect(function(plr)
     if _chamsCharConns[plr] then _chamsCharConns[plr]:Disconnect(); _chamsCharConns[plr] = nil end
+    _chamsRemoveHighlight(plr)
 end)
 
 game:GetService("RunService").Heartbeat:Connect(function()
@@ -414,7 +466,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
             local char = plr.Character; if not char then continue end
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum and hum.Health <= 0 then
-                local h = char:FindFirstChild("ChamsHighlight"); if h then h:Destroy() end; continue
+                _chamsRemoveHighlight(plr); continue
             end
             local withinRange = false
             if _chamsEnabled and localRoot then
@@ -425,14 +477,20 @@ game:GetService("RunService").Heartbeat:Connect(function()
                 end
             end
             if not _chamsEnabled or _chamsSkip(plr) or not withinRange then
-                local h = char:FindFirstChild("ChamsHighlight"); if h then h:Destroy() end
+                _chamsRemoveHighlight(plr)
             else
-                local h = char:FindFirstChild("ChamsHighlight")
+                local los = char:FindFirstChild("ChamsLos")
                 local col = _chamsGetColor(plr)
-                if not h then _chamsAddHighlight(char, col)
+                if not los then 
+                    _chamsAddHighlight(plr, char, col)
                 else
-                    if h.FillColor ~= col then h.FillColor = col end
-                    if h.OutlineColor ~= _chamsOutline then h.OutlineColor = _chamsOutline end
+                    if los.FillColor ~= col then los.FillColor = col end
+                    if los.OutlineColor ~= _chamsOutline then los.OutlineColor = _chamsOutline end
+                    local data = _chamsObjects[plr]
+                    if data and data.Occ then
+                        if data.Occ.FillColor ~= col then data.Occ.FillColor = col end
+                        if data.Occ.OutlineColor ~= _chamsOutline then data.Occ.OutlineColor = _chamsOutline end
+                    end
                 end
             end
         end
