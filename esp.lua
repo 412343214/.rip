@@ -337,23 +337,26 @@ EspBoxGroup:AddToggle("BoxOutline",{Text="Outline",Default=false,
 EspBoxGroup:AddDropdown("BoxMode",{Values={"corner","full"},Default="corner",Text="Box Mode",
     Callback=function(v) esp.settings.box.mode=v end})
 
+local _chamsEnabled           = false
+local _teamChamsOn            = false
 
-local _chamsEnabled   = false
-local _teamChamsOn    = false
-local _chamsFill      = Color3.fromRGB(255, 0, 0)
-local _chamsOutline   = Color3.fromRGB(255, 255, 255)
-local _chamsOccludedColor = Color3.fromRGB(255, 40, 40)
+local _chamsVisibleColor      = Color3.fromRGB(0, 200, 255)
+local _chamsOccludedColor     = Color3.fromRGB(255, 40, 40)
+local _chamsOutlineColor      = Color3.fromRGB(255, 255, 255)
+local _chamsFillTransparency  = 0.5
+local _chamsOutlineTransparency = 1
+
 local _chamsCriminals = Color3.fromRGB(255, 60, 60)
 local _chamsGuards    = Color3.fromRGB(60, 120, 255)
 local _chamsInmates   = Color3.fromRGB(255, 165, 0)
 
 local function _chamsGetColor(player)
-    if not _teamChamsOn then return _chamsFill end
+    if not _teamChamsOn then return _chamsVisibleColor end
     local tm = player.Team
     if tm == criminalsTeam then return _chamsCriminals end
     if tm == guardsTeam    then return _chamsGuards end
     if tm == inmatesTeam   then return _chamsInmates end
-    return _chamsFill
+    return _chamsVisibleColor
 end
 
 local function _chamsSkip(player)
@@ -389,9 +392,9 @@ local function _chamsAddHighlight(char, visibleColor)
     local hOcc = Instance.new("Highlight")
     hOcc.Name = "ChamsHighlight_Occluded"
     hOcc.FillColor = _chamsOccludedColor
-    hOcc.OutlineColor = _chamsOutline
-    hOcc.FillTransparency = 0.5
-    hOcc.OutlineTransparency = 0
+    hOcc.OutlineColor = _chamsOutlineColor
+    hOcc.FillTransparency = _chamsFillTransparency
+    hOcc.OutlineTransparency = _chamsOutlineTransparency
     hOcc.DepthMode = Enum.HighlightDepthMode.Occluded
     hOcc.Adornee = char
     hOcc.Parent = char
@@ -399,9 +402,9 @@ local function _chamsAddHighlight(char, visibleColor)
     local hVis = Instance.new("Highlight")
     hVis.Name = "ChamsHighlight_Visible"
     hVis.FillColor = visibleColor
-    hVis.OutlineColor = _chamsOutline
-    hVis.FillTransparency = 0.5
-    hVis.OutlineTransparency = 0
+    hVis.OutlineColor = _chamsOutlineColor
+    hVis.FillTransparency = _chamsFillTransparency
+    hVis.OutlineTransparency = _chamsOutlineTransparency
     hVis.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     hVis.Adornee = cloneModel
     hVis.Parent = cloneModel
@@ -411,7 +414,6 @@ local function _chamsRemoveHighlight(char)
     if not char then return end
     local cloneModel = char:FindFirstChild("ChamsCloneModel")
     if cloneModel then cloneModel:Destroy() end
-    
     local hOcc = char:FindFirstChild("ChamsHighlight_Occluded")
     if hOcc then hOcc:Destroy() end
 end
@@ -480,9 +482,14 @@ game:GetService("RunService").Heartbeat:Connect(function()
                     _chamsAddHighlight(char, col)
                 else
                     if hVis.FillColor ~= col then hVis.FillColor = col end
-                    if hVis.OutlineColor ~= _chamsOutline then hVis.OutlineColor = _chamsOutline end
+                    if hVis.OutlineColor ~= _chamsOutlineColor then hVis.OutlineColor = _chamsOutlineColor end
+                    if hVis.FillTransparency ~= _chamsFillTransparency then hVis.FillTransparency = _chamsFillTransparency end
+                    if hVis.OutlineTransparency ~= _chamsOutlineTransparency then hVis.OutlineTransparency = _chamsOutlineTransparency end
+
                     if hOcc.FillColor ~= _chamsOccludedColor then hOcc.FillColor = _chamsOccludedColor end
-                    if hOcc.OutlineColor ~= _chamsOutline then hOcc.OutlineColor = _chamsOutline end
+                    if hOcc.OutlineColor ~= _chamsOutlineColor then hOcc.OutlineColor = _chamsOutlineColor end
+                    if hOcc.FillTransparency ~= _chamsFillTransparency then hOcc.FillTransparency = _chamsFillTransparency end
+                    if hOcc.OutlineTransparency ~= _chamsOutlineTransparency then hOcc.OutlineTransparency = _chamsOutlineTransparency end
                 end
             end
         end
@@ -492,12 +499,19 @@ end)
 local ChamsGroup = Tabs.Visuals:AddLeftGroupbox("Chams", "layers", {Collapsible=true})
 ChamsGroup:AddToggle("ChamsEnabled",{Text="Enable Chams",Default=false,
     Callback=function(v) _chamsEnabled=v; if not v then _chamsCleanAll() end end})
-ChamsGroup:AddLabel("Visible Color"):AddColorPicker("ChamsFillColor",{Default=Color3.fromRGB(255,0,0),Title="Visible Color",
-    Callback=function(v) _chamsFill=v end})
-ChamsGroup:AddLabel("Behind Wall Color"):AddColorPicker("ChamsOccludedColor",{Default=Color3.fromRGB(255,40,40),Title="Behind Wall Color",
+
+ChamsGroup:AddLabel("Visible Color"):AddColorPicker("ChamsVisibleColor",{Default=Color3.fromRGB(0, 200, 255),Title="Visible Color",
+    Callback=function(v) _chamsVisibleColor=v end})
+ChamsGroup:AddLabel("Occluded Color"):AddColorPicker("ChamsOccludedColor",{Default=Color3.fromRGB(255, 40, 40),Title="Occluded Color",
     Callback=function(v) _chamsOccludedColor=v end})
 ChamsGroup:AddLabel("Outline Color"):AddColorPicker("ChamsOutlineColor",{Default=Color3.fromRGB(255,255,255),Title="Outline Color",
-    Callback=function(v) _chamsOutline=v end})
+    Callback=function(v) _chamsOutlineColor=v end})
+
+ChamsGroup:AddSlider("FillTransparency",{Text="Fill Transparency",Default=0.5,Min=0,Max=1,Rounding=2,
+    Callback=function(v) _chamsFillTransparency=v end})
+ChamsGroup:AddSlider("OutlineTransparency",{Text="Outline Transparency",Default=1,Min=0,Max=1,Rounding=2,
+    Callback=function(v) _chamsOutlineTransparency=v end})
+
 ChamsGroup:AddDivider()
 ChamsGroup:AddToggle("TeamChamsEnabled",{Text="Team Chams",Default=false,
     Callback=function(v) _teamChamsOn=v end})
